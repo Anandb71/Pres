@@ -283,16 +283,27 @@ async function handleExplainCommand(
 const PORT = Number(process.env.PORT ?? 3000);
 
 (async () => {
-    const probot = createProbot();
-
-    // Probot webhook middleware — handles /api/github/webhooks
-    const webhookMiddleware = await createNodeMiddleware(presolution, { probot });
-
     const server = express();
-    server.use(webhookMiddleware);
+
+    // Mount Probot webhook handler only when GitHub App credentials are present.
+    // This lets the dashboard run on Render before the GitHub App is created.
+    if (process.env.APP_ID && (process.env.PRIVATE_KEY || process.env.PRIVATE_KEY_PATH)) {
+        try {
+            const probot = createProbot();
+            const webhookMiddleware = await createNodeMiddleware(presolution, { probot });
+            server.use(webhookMiddleware);
+            probot.log.info("✅ Probot webhook handler active");
+        } catch (err) {
+            console.error("⚠️  Probot init failed (check APP_ID / PRIVATE_KEY):", err);
+        }
+    } else {
+        console.log("ℹ️  APP_ID / PRIVATE_KEY not set — running in dashboard-only mode");
+        console.log("ℹ️  Create your GitHub App, then add credentials to start processing webhooks");
+    }
+
     server.use(createDashboardApp());
 
     server.listen(PORT, () => {
-        probot.log.info(`🚀 PResolution running on port ${PORT}`);
+        console.log(`🚀 PResolution running on port ${PORT}`);
     });
 })();
