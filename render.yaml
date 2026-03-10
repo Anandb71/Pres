@@ -1,0 +1,66 @@
+# ============================================================
+#  PResolution — Render.com Infrastructure-as-Code
+#  Docs: https://render.com/docs/infrastructure-as-code
+# ============================================================
+
+services:
+  - type: web
+    name: presolution
+    runtime: node
+    plan: free           # upgrade to starter/standard for persistent activity logs
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      # ── Runtime ────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000        # Render overrides this automatically; kept for local ref
+      - key: LOG_LEVEL
+        value: info
+
+      # ── GitHub App ─────────────────────────────────────────
+      # Set APP_ID in the Render dashboard (Settings → Environment)
+      - key: APP_ID
+        sync: false
+      # Paste the entire contents of your private-key.pem here.
+      # Replace newlines with literal \n  OR  paste multi-line in the dashboard UI.
+      # Do NOT set PRIVATE_KEY_PATH on Render — use this instead.
+      - key: PRIVATE_KEY
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      # Leave WEBHOOK_PROXY_URL blank on Render (Render gives you a real public URL)
+      - key: WEBHOOK_PROXY_URL
+        value: ""
+
+      # ── AI Provider ────────────────────────────────────────
+      # Groq example (openai-compatible):
+      #   AI_PROVIDER=openai-compatible
+      #   OPENAI_BASE_URL=https://api.groq.com/openai/v1
+      #   OPENAI_API_KEY=<your groq key>
+      #   AI_MODEL=openai/gpt-oss-120b
+      - key: AI_PROVIDER
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      # For Gemini:
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # ── Dashboard Security ─────────────────────────────────
+      # Generate with: openssl rand -hex 32
+      - key: DASHBOARD_ACCESS_TOKEN
+        sync: false
+      - key: DASHBOARD_RATE_WINDOW_MS
+        value: "60000"
+      - key: DASHBOARD_RATE_MAX_REQUESTS
+        value: "240"

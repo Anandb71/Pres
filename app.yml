@@ -5,7 +5,9 @@
 
 name: PResolution
 description: "🤖 Autonomous PR Resolution Agent — AI-powered code fixes from review comments. Reply @PResolve /fix to any PR comment and watch the magic happen."
-url: https://github.com/anand/PResolution
+# Update this to your Render service URL after deploy:
+# https://<your-service-name>.onrender.com
+url: https://github.com/Anandb71/Pres
 public: true
 
 default_events:

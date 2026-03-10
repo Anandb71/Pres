@@ -217,15 +217,53 @@ PResolution/
 
 ## 🚢 Deployment
 
-Deploy to any Node.js hosting platform:
+### Render (Recommended — free tier available)
+
+A `render.yaml` is included for one-click Infrastructure-as-Code deployment.
+
+#### Step 1 — Push to GitHub
+Make sure your code is on the `main` branch of a GitHub repo.
+
+#### Step 2 — Create a new Web Service on Render
+1. Go to [dashboard.render.com](https://dashboard.render.com) → **New → Web Service**
+2. Connect your GitHub repo (`Anandb71/Pres`)
+3. Render auto-detects `render.yaml` — accept the settings
+
+#### Step 3 — Set environment variables
+In the Render dashboard → **Environment → Environment Variables**, add:
+
+| Variable | Value |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `APP_ID` | Your GitHub App ID |
+| `PRIVATE_KEY` | **Full contents of your `.pem` file** (paste multi-line in UI) |
+| `WEBHOOK_SECRET` | Your webhook secret |
+| `AI_PROVIDER` | `openai-compatible` (for Groq) |
+| `OPENAI_BASE_URL` | `https://api.groq.com/openai/v1` |
+| `OPENAI_API_KEY` | Your Groq API key |
+| `AI_MODEL` | `openai/gpt-oss-120b` |
+| `DASHBOARD_ACCESS_TOKEN` | `openssl rand -hex 32` |
+
+> **`PRIVATE_KEY` tip:** Open your `.pem` file, select all, and paste directly into the Render UI — it handles multi-line values correctly. Do **not** set `PRIVATE_KEY_PATH` on Render.
+
+> **PORT:** Do **not** set `PORT` — Render injects it automatically.
+
+#### Step 4 — Update your GitHub App webhook URL
+After first deploy, copy your Render service URL (e.g. `https://presolution.onrender.com`) and set it as the **Webhook URL** in your GitHub App settings: `https://presolution.onrender.com/`
+
+#### Step 5 — Done
+Push a commit → Render auto-deploys. Your webhook URL is live and the bot is running.
+
+---
+
+### Other platforms
 
 | Platform | Notes |
 |----------|-------|
-| [Railway](https://railway.app) | One-click deploy with GitHub |
-| [Render](https://render.com) | Free tier available |
-| [Fly.io](https://fly.io) | Global edge deployment |
+| [Railway](https://railway.app) | One-click deploy; same env vars apply |
+| [Fly.io](https://fly.io) | Global edge; use `fly launch` |
 
-Set environment variables on your platform and update the Webhook URL in your GitHub App settings.
+**All platforms:** same env vars, `npm install && npm run build` for build, `npm start` to run. `PRIVATE_KEY` (env var) is always safer than `PRIVATE_KEY_PATH` on cloud hosts.
 
 ## 🤝 Contributing
 
