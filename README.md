@@ -9,7 +9,7 @@ One command to fix them all.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Probot](https://img.shields.io/badge/Probot-14.2-00B0D8?style=flat-square&logo=probot&logoColor=white)](https://probot.github.io/)
-[![Gemini](https://img.shields.io/badge/Gemini_AI-2.0_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
+[![LLM Providers](https://img.shields.io/badge/LLM-Provider_Flexible-7C3AED?style=flat-square)](#-setup)
 [![License: MIT](https://img.shields.io/badge/License-MIT-06D6A0?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-41_Passing-06D6A0?style=flat-square)](test/)
 
@@ -33,7 +33,7 @@ and commits it directly to the PR branch — all from a single comment.
 3. PResolution:
    📖 Reads the review comment
    📂 Fetches the file content and diff
-   🧠 Sends context to Gemini AI
+  🧠 Sends context to configured LLM provider
    ✍️ Generates the corrected code
    📦 Commits directly to the PR branch
 
@@ -47,7 +47,7 @@ flowchart LR
     A["💬 PR Comment"] -->|Webhook| B["⚡ PResolution"]
     B --> C{"Command Parser"}
     C -->|"/fix"| D["📂 Context Fetcher"]
-    D --> E["🧠 Gemini AI"]
+    D --> E["🧠 LLM Provider"]
     E --> F["📦 Git Commit Engine"]
     F --> G["✅ PR Updated"]
     B --> H["🖥️ Dashboard"]
@@ -59,7 +59,7 @@ flowchart LR
 |--------|---------|
 | `commandParser.ts` | Detects `@PResolve /fix` trigger commands |
 | `contextFetcher.ts` | Fetches PR diff, file content, review thread |
-| `aiEngine.ts` | Constructs prompts, calls Gemini, validates fixes |
+| `aiEngine.ts` | Constructs prompts, calls configured provider, validates fixes |
 | `commitEngine.ts` | Creates blob → tree → commit → ref update via Git Database API |
 | `replyHandler.ts` | Posts status comments with commit links |
 
@@ -69,13 +69,16 @@ flowchart LR
 
 - **Node.js** ≥ 20.0.0
 - A **GitHub App** with the right permissions (see [Setup Guide](#-setup))
-- A **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/apikey)
+- One supported LLM provider:
+  - Gemini (`AI_PROVIDER=gemini` + `GEMINI_API_KEY`)
+  - OpenAI (`AI_PROVIDER=openai` + `OPENAI_API_KEY`)
+  - GitHub Models/OpenAI-compatible (`AI_PROVIDER=github-models` + `GITHUB_TOKEN`, optional `OPENAI_BASE_URL`)
 
 ### Install & Run
 
 ```bash
 # Clone
-git clone https://github.com/anand/PResolution.git
+git clone https://github.com/Anandb71/Pres.git
 cd PResolution
 
 # Install dependencies
@@ -111,7 +114,19 @@ Go to [github.com/settings/apps/new](https://github.com/settings/apps/new):
 APP_ID=your_app_id
 PRIVATE_KEY_PATH=./private-key.pem
 WEBHOOK_SECRET=your_webhook_secret
+
+# Choose one provider
+AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
+
+# OR
+# AI_PROVIDER=openai
+# OPENAI_API_KEY=your_openai_api_key
+
+# OR (GitHub Models / OpenAI-compatible)
+# AI_PROVIDER=github-models
+# GITHUB_TOKEN=your_github_token
+# OPENAI_BASE_URL=https://models.inference.ai.azure.com
 ```
 
 ### 3. Install on Repos
@@ -150,7 +165,7 @@ npm run test:watch
 **Test coverage:** 41 tests across 4 test files:
 - `commandParser.test.ts` — 21 tests (trigger patterns, edge cases)
 - `utils.test.ts` — 15 tests (utilities, activity log)
-- `aiEngine.test.ts` — 3 tests (Gemini integration, mocked)
+- `aiEngine.test.ts` — 3 tests (provider integration, mocked)
 - `commitEngine.test.ts` — 2 tests (full Git Database API flow, mocked)
 
 ## 🖥️ Dashboard
@@ -171,7 +186,7 @@ PResolution/
 │   ├── index.ts              # Probot entry point + pipeline orchestration
 │   ├── commandParser.ts      # Command detection & parsing
 │   ├── contextFetcher.ts     # PR data fetching via Octokit
-│   ├── aiEngine.ts           # Gemini AI integration
+│   ├── aiEngine.ts           # LLM provider integration (Gemini/OpenAI-compatible)
 │   ├── commitEngine.ts       # Git Database API commit flow
 │   ├── replyHandler.ts       # PR comment status updates
 │   ├── types.ts              # Shared TypeScript interfaces
@@ -221,5 +236,5 @@ MIT © [Anand](https://github.com/anand)
 ---
 
 <div align="center">
-  <strong>Built with ⚡ by Anand — Powered by Probot & Google Gemini</strong>
+  <strong>Built with ⚡ by Anand — Powered by Probot & pluggable LLM providers</strong>
 </div>

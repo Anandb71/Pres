@@ -10,7 +10,8 @@ import { stripCodeFences } from "./utils.js";
 /**
  * The AI model to use for generating fixes.
  */
-const AI_MODEL = process.env.AI_MODEL || "gemini-2.0-flash";
+const AI_PROVIDER = (process.env.AI_PROVIDER || "gemini").toLowerCase();
+const AI_MODEL = process.env.AI_MODEL || (AI_PROVIDER === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini");
 
 /**
  * System prompt that instructs the AI how to behave.
@@ -40,15 +41,6 @@ Rules:
  * @returns AIResponse with the fixed file content
  */
 export async function generateFix(prContext: PRContext): Promise<AIResponse> {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        return {
-            success: false,
-            error: "GEMINI_API_KEY is not configured. Please set it in your environment variables.",
-            model: AI_MODEL,
-        };
-    }
-
     if (!prContext.fileContent) {
         return {
             success: false,
@@ -58,17 +50,9 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
     }
 
     try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: AI_MODEL,
-            systemInstruction: SYSTEM_PROMPT,
-        });
-
         const userPrompt = buildPrompt(prContext);
-
-        const result = await model.generateContent(userPrompt);
-        const response = result.response;
-        const text = response.text();
+        const generated = await generateWithProvider(userPrompt);
+        const text = generated.text;
 
         if (!text || text.trim().length === 0) {
             return {
@@ -99,7 +83,7 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
             fixedContent,
             explanation: extractExplanation(text, fixedContent),
             model: AI_MODEL,
-            tokensUsed: response.usageMetadata?.totalTokenCount,
+            tokensUsed: generated.tokensUsed,
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -108,6 +92,106 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
             error: `AI generation failed: ${message}`,
             model: AI_MODEL,
         };
+    }
+}
+
+async function generateWithProvider(userPrompt: string): Promise<{ text: string; tokensUsed?: number }> {
+    switch (AI_PROVIDER) {
+        case "gemini": {
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) {
+                throw new Error("GEMINI_API_KEY is not configured. Please set it in your environment variables.");
+            }
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: AI_MODEL,
+                systemInstruction: SYSTEM_PROMPT,
+            });
+
+            const result = await model.generateContent(userPrompt);
+            const response = result.response;
+            return {
+                text: response.text(),
+                tokensUsed: response.usageMetadata?.totalTokenCount,
+            };
+        }
+
+        case "openai":
+        case "openai-compatible":
+        case "github-models": {
+            const baseUrl =
+                AI_PROVIDER === "github-models"
+                    ? process.env.OPENAI_BASE_URL || "https://models.inference.ai.azure.com"
+                    : process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+
+            const apiKey =
+                AI_PROVIDER === "github-models"
+                    ? process.env.GITHUB_TOKEN || process.env.OPENAI_API_KEY
+                    : process.env.OPENAI_API_KEY;
+
+            if (!apiKey) {
+                throw new Error(
+                    AI_PROVIDER === "github-models"
+                        ? "GITHUB_TOKEN (or OPENAI_API_KEY) is not configured for github-models provider."
+                        : "OPENAI_API_KEY is not configured. Please set it in your environment variables."
+                );
+            }
+
+            return await generateWithOpenAICompatible(baseUrl, apiKey, userPrompt);
+        }
+
+        default:
+            throw new Error(
+                `Unsupported AI_PROVIDER: ${AI_PROVIDER}. Use one of: gemini, openai, openai-compatible, github-models.`
+            );
+    }
+}
+
+async function generateWithOpenAICompatible(
+    baseUrl: string,
+    apiKey: string,
+    userPrompt: string
+): Promise<{ text: string; tokensUsed?: number }> {
+    const endpoint = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45_000);
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: AI_MODEL,
+                temperature: 0.1,
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userPrompt },
+                ],
+            }),
+            signal: controller.signal,
+        });
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Provider request failed (${response.status}): ${body.slice(0, 400)}`);
+        }
+
+        const json = (await response.json()) as {
+            choices?: Array<{ message?: { content?: string } }>;
+            usage?: { total_tokens?: number };
+        };
+
+        const text = json.choices?.[0]?.message?.content || "";
+        return {
+            text,
+            tokensUsed: json.usage?.total_tokens,
+        };
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
