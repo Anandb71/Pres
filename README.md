@@ -123,6 +123,12 @@ GEMINI_API_KEY=your_gemini_api_key
 # AI_PROVIDER=openai
 # OPENAI_API_KEY=your_openai_api_key
 
+# OR (Groq, OpenAI-compatible)
+# AI_PROVIDER=openai-compatible
+# OPENAI_BASE_URL=https://api.groq.com/openai/v1
+# OPENAI_API_KEY=your_groq_api_key
+# AI_MODEL=openai/gpt-oss-120b
+
 # OR (GitHub Models / OpenAI-compatible)
 # AI_PROVIDER=github-models
 # GITHUB_TOKEN=your_github_token
