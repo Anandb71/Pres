@@ -3,7 +3,9 @@
 //  The Probot app that orchestrates the entire fix pipeline
 // ============================================================
 
-import { Probot, type Context } from "probot";
+import { Probot, createNodeMiddleware, createProbot, type Context } from "probot";
+import express from "express";
+import { createDashboardApp } from "./dashboard/server.js";
 import { parseCommand, mightBeCommand } from "./commandParser.js";
 import { fetchPRContext } from "./contextFetcher.js";
 import { generateFix } from "./aiEngine.js";
@@ -272,3 +274,25 @@ async function handleExplainCommand(
         context.log.error(`❌ Explain failed: ${message}`);
     }
 }
+
+// ──────────────────────────────────────────────
+// Server startup
+// Single Express server combining Probot webhooks
+// + dashboard, so Render only needs one port.
+// ──────────────────────────────────────────────
+const PORT = Number(process.env.PORT ?? 3000);
+
+(async () => {
+    const probot = createProbot();
+
+    // Probot webhook middleware — handles /api/github/webhooks
+    const webhookMiddleware = await createNodeMiddleware(presolution, { probot });
+
+    const server = express();
+    server.use(webhookMiddleware);
+    server.use(createDashboardApp());
+
+    server.listen(PORT, () => {
+        probot.log.info(`🚀 PResolution running on port ${PORT}`);
+    });
+})();
