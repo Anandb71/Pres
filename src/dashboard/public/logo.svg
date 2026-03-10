@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0d18;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f1424;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="red-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="main-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg-grad)" stroke="url(#main-grad)" stroke-width="3"/>
+
+  <!-- Main vertical line (base branch) -->
+  <line x1="196" y1="120" x2="196" y2="392" stroke="#2a2a4c" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- PR branch line curving out and back - blue to red gradient -->
+  <path d="M 196 180 C 196 180, 260 160, 316 200 C 372 240, 372 300, 316 340 C 260 380, 196 360, 196 360"
+        stroke="url(#main-grad)" stroke-width="20" stroke-linecap="round" fill="none" filter="url(#glow)"/>
+
+  <!-- Base branch dot (bottom) - merge point -->
+  <circle cx="196" cy="380" r="24" fill="#1a1a3c" stroke="url(#blue-grad)" stroke-width="4"/>
+  <polyline points="182,380 192,392 212,368" stroke="url(#blue-grad)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Base branch dot (top) -->
+  <circle cx="196" cy="140" r="24" fill="#1a1a3c" stroke="#4a4a6c" stroke-width="4"/>
+
+  <!-- PR branch dot — red with lightning bolt -->
+  <circle cx="340" cy="270" r="26" fill="url(#red-grad)"/>
+  <polygon points="336,254 330,272 340,272 334,290 350,266 340,266 346,254" fill="#0a0d18"/>
+
+  <!-- Sparkles -->
+  <circle cx="380" cy="160" r="4" fill="#3b82f6" opacity="0.6"/>
+  <circle cx="400" cy="190" r="3" fill="#60a5fa" opacity="0.4"/>
+  <circle cx="370" cy="370" r="3" fill="#ef4444" opacity="0.5"/>
+  <circle cx="140" cy="260" r="3" fill="#3b82f6" opacity="0.4"/>
+  <circle cx="120" cy="340" r="2.5" fill="#ef4444" opacity="0.3"/>
+</svg>
