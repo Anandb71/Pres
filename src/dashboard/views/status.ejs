@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PResolution service status page.">
+  <title>Status — PResolution</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+</head>
+
+<body>
+  <div class="page-progress" aria-hidden="true"><div class="page-progress-bar" id="page-progress"></div></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-b" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="/" class="brand" aria-label="PResolution home">
+        <img src="/static/logo.svg" alt="PResolution logo" class="brand-logo">
+        <span class="brand-name">PResolution</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <ul class="nav-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/setup">Setup</a></li>
+          <li><a class="active" href="/status">Status</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-primary nav-cta" href="/github">Open Repo</a>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container page-shell">
+      <section class="panel reveal is-visible">
+        <p class="kicker">Operational health</p>
+        <h1 class="page-title">Service status</h1>
+        <p class="subtle">Last updated: <code><%= now %></code></p>
+        <div class="stats-grid dashboard-stats">
+          <div class="stat"><p class="stat-value">OK</p><p class="stat-label">Service state</p></div>
+          <div class="stat"><p class="stat-value"><%= stats.successRate || 0 %>%</p><p class="stat-label">Success rate</p></div>
+          <div class="stat"><p class="stat-value"><%= stats.totalFixes || 0 %></p><p class="stat-label">Total fixes</p></div>
+          <div class="stat"><p class="stat-value"><%= activities.length %></p><p class="stat-label">Recent events</p></div>
+        </div>
+      </section>
+
+      <section class="panel reveal is-visible">
+        <div class="panel-head">
+          <h2>System endpoints</h2>
+        </div>
+        <div class="code-card">
+          <code>GET /health → JSON health probe</code>
+          <code>GET /api/activity → Recent activity + stats JSON</code>
+          <code>GET /dashboard → Human dashboard view</code>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a href="/" class="brand footer-brand">
+          <img src="/static/logo.svg" alt="PResolution logo" class="brand-logo">
+          <span class="brand-name">PResolution</span>
+        </a>
+        <p>Transparent runtime visibility and endpoint checks.</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/setup">Setup</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="/github">Repository</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const bar = document.getElementById('page-progress');
+      const update = () => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const p = max > 0 ? window.scrollY / max : 0;
+        if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, p))})`;
+      };
+      window.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+      update();
+    })();
+  </script>
+</body>
+
+</html>

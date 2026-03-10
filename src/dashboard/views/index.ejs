@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PResolution automates pull request review fixes with context-aware patches and direct commits.">
+  <title>PResolution — Ship review fixes faster</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+</head>
+
+<body>
+  <div class="page-progress" aria-hidden="true">
+    <div class="page-progress-bar" id="page-progress"></div>
+  </div>
+  <div class="bg-noise" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-b" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="/" class="brand" aria-label="PResolution home">
+        <img src="/static/logo.svg" alt="PResolution logo" class="brand-logo">
+        <span class="brand-name">PResolution</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <ul class="nav-links">
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#results">Results</a></li>
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/setup">Setup</a></li>
+          <li><a href="/status">Status</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-primary nav-cta" href="/github">View Repo</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" data-section="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy reveal reveal-delay-1">
+          <p class="kicker">Fast PR resolution workflow</p>
+          <h1>One comment.<br>Clean fix.<br>Committed.</h1>
+          <p class="hero-sub">
+            PResolution reads review context, writes precise code updates, and commits directly to your pull request branch.
+            No local clone, no context switching, no busywork.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/github">Open GitHub Repo</a>
+            <a class="btn btn-secondary" href="#how">Watch flow</a>
+          </div>
+        </div>
+
+        <div class="hero-panel reveal reveal-delay-2" id="how" data-section="how">
+          <div class="terminal" data-tilt>
+            <div class="terminal-head">
+              <span class="dot red"></span>
+              <span class="dot amber"></span>
+              <span class="dot green"></span>
+              <span class="terminal-title">Pull Request #42 — authentication guard</span>
+            </div>
+            <div class="terminal-body">
+              <div class="flow-step active" data-step="1">
+                <span class="step-pill">Step 1</span>
+                <h3>Reviewer leaves feedback</h3>
+                <p>“Handle empty array before iterating users to prevent crash.”</p>
+              </div>
+              <div class="flow-step" data-step="2">
+                <span class="step-pill">Step 2</span>
+                <h3>You trigger the command</h3>
+                <p><code>@PResolve /fix also add validation</code></p>
+              </div>
+              <div class="flow-step" data-step="3">
+                <span class="step-pill">Step 3</span>
+                <h3>Context-aware patch generation</h3>
+                <p>PR diff + file context + thread intent analyzed before code edit.</p>
+              </div>
+              <div class="flow-step" data-step="4">
+                <span class="step-pill">Step 4</span>
+                <h3>Commit pushed to PR branch</h3>
+                <p>GitHub Git Database API updates branch with traceable commit.</p>
+              </div>
+            </div>
+            <div class="flow-progress" role="progressbar" aria-label="Flow progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1">
+              <div class="flow-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section features" id="features" data-section="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="kicker">Built for real engineering teams</p>
+          <h2>Modern interaction, practical outcomes</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="card reveal reveal-delay-1" data-tilt>
+            <h3>Context-first fixes</h3>
+            <p>Understands reviewer intent and nearby code before generating the patch.</p>
+          </article>
+          <article class="card reveal reveal-delay-2" data-tilt>
+            <h3>Direct commit pipeline</h3>
+            <p>Creates blobs, trees, commits, and refs without leaving GitHub infrastructure.</p>
+          </article>
+          <article class="card reveal reveal-delay-2" data-tilt>
+            <h3>Clean transition system</h3>
+            <p>Compositor-safe transitions using transform + opacity for smooth 60fps UX.</p>
+          </article>
+          <article class="card reveal reveal-delay-3" data-tilt>
+            <h3>Transparent status reports</h3>
+            <p>Every run posts exact change details, timing, and next-step guidance.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section results" id="results" data-section="results">
+      <div class="container stats-grid">
+        <div class="stat reveal reveal-delay-1" data-tilt>
+          <p class="stat-value"><%= stats.totalFixes ?? 0 %></p>
+          <p class="stat-label">Fixes applied</p>
+        </div>
+        <div class="stat reveal reveal-delay-2" data-tilt>
+          <p class="stat-value"><%= stats.successRate ?? 0 %>%</p>
+          <p class="stat-label">Success rate</p>
+        </div>
+        <div class="stat reveal reveal-delay-3" data-tilt>
+          <p class="stat-value"><%= stats.avgTimeMs ? (stats.avgTimeMs / 1000).toFixed(1) + 's' : '—' %></p>
+          <p class="stat-label">Average resolution time</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-block">
+      <div class="container cta-card reveal">
+        <img src="/static/logo.svg" alt="PResolution app logo" class="cta-logo">
+        <div>
+          <h2>Plug in the app and remove PR review drag.</h2>
+          <p>Install once and trigger fixes from comments where your team already works.</p>
+        </div>
+        <a class="btn btn-primary" href="/github">Open Repo</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a href="/" class="brand footer-brand">
+          <img src="/static/logo.svg" alt="PResolution logo" class="brand-logo">
+          <span class="brand-name">PResolution</span>
+        </a>
+        <p>Autonomous PR fix engine for fast, reliable code review cycles.</p>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/setup">Setup</a>
+        <a href="/status">Status</a>
+        <a href="/health">Health</a>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <a href="/github">Repository</a>
+        <a href="https://github.com/Anandb71/Pres/issues" target="_blank" rel="noreferrer">Issues</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const steps = Array.from(document.querySelectorAll('.flow-step'));
+      const flowProgress = document.querySelector('.flow-progress');
+      const flowProgressBar = document.querySelector('.flow-progress-bar');
+      let idx = 0;
+
+      function setStep(next) {
+        if (!steps.length) return;
+        idx = next % steps.length;
+        steps.forEach((el, i) => el.classList.toggle('active', i === idx));
+        const value = ((idx + 1) / steps.length) * 100;
+        if (flowProgressBar) flowProgressBar.style.transform = `scaleX(${value / 100})`;
+        if (flowProgress) flowProgress.setAttribute('aria-valuenow', String(idx + 1));
+      }
+
+      if (!reduceMotion) {
+        setInterval(() => setStep(idx + 1), 2600);
+      } else {
+        setStep(0);
+      }
+
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+
+      document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+
+      const pageProgress = document.getElementById('page-progress');
+      const header = document.querySelector('.site-header');
+      const sections = Array.from(document.querySelectorAll('[data-section]'));
+      const navLinks = Array.from(document.querySelectorAll('.nav-links a[href^="#"]'));
+      const orbA = document.querySelector('.bg-orb-a');
+      const orbB = document.querySelector('.bg-orb-b');
+
+      function updateScrollUI() {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = max > 0 ? window.scrollY / max : 0;
+        if (pageProgress) pageProgress.style.transform = `scaleX(${Math.min(1, Math.max(0, progress))})`;
+
+        if (header) header.classList.toggle('scrolled', window.scrollY > 14);
+
+        let active = '';
+        for (const section of sections) {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= window.innerHeight * 0.35 && rect.bottom >= window.innerHeight * 0.35) {
+            active = section.id;
+            break;
+          }
+        }
+
+        navLinks.forEach((link) => {
+          const href = link.getAttribute('href') || '';
+          link.classList.toggle('active', !!active && href === `#${active}`);
+        });
+
+        if (!reduceMotion) {
+          const y = window.scrollY;
+          if (orbA) orbA.style.transform = `translate3d(${Math.sin(y * 0.001) * 10}px, ${y * 0.03}px, 0)`;
+          if (orbB) orbB.style.transform = `translate3d(${Math.cos(y * 0.0013) * -12}px, ${y * -0.024}px, 0)`;
+        }
+      }
+
+      let ticking = false;
+      window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          updateScrollUI();
+          ticking = false;
+        });
+      }, { passive: true });
+
+      window.addEventListener('resize', updateScrollUI);
+      updateScrollUI();
+
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', (event) => {
+          const href = anchor.getAttribute('href');
+          const target = href ? document.querySelector(href) : null;
+          if (!target) return;
+          event.preventDefault();
+          target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        }, { passive: false });
+      });
+
+      if (!reduceMotion) {
+        document.querySelectorAll('[data-tilt]').forEach((el) => {
+          const intensity = 8;
+
+          el.addEventListener('pointermove', (event) => {
+            const rect = el.getBoundingClientRect();
+            const px = (event.clientX - rect.left) / rect.width;
+            const py = (event.clientY - rect.top) / rect.height;
+            const rx = (0.5 - py) * intensity;
+            const ry = (px - 0.5) * intensity;
+            el.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(-2px)`;
+          });
+
+          el.addEventListener('pointerleave', () => {
+            el.style.transform = '';
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>
