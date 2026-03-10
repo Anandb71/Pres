@@ -1,0 +1,24 @@
+# ================================================
+#  PResolution — GitHub App Manifest
+#  One-click app creation via /settings/apps/new
+# ================================================
+
+name: PResolution
+description: "🤖 Autonomous PR Resolution Agent — AI-powered code fixes from review comments. Reply @PResolve /fix to any PR comment and watch the magic happen."
+url: https://github.com/anand/PResolution
+public: true
+
+default_events:
+  - issue_comment
+  - pull_request
+  - pull_request_review_comment
+
+default_permissions:
+  # Read PR data, diffs, comments
+  pull_requests: write
+  # Read & write repository content (for commits)
+  contents: write
+  # Read & write issue/PR comments
+  issues: write
+  # Read repository metadata
+  metadata: read
