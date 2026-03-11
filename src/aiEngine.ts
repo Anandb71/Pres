@@ -51,6 +51,7 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
 
     try {
         const userPrompt = buildPrompt(prContext);
+        console.info(`[AI ENGINE] Sending prompt to provider=${AI_PROVIDER} model=${AI_MODEL} file=${prContext.filePath}`);
         const generated = await generateWithProvider(userPrompt);
         const text = generated.text;
 
@@ -87,6 +88,7 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        console.error(`[AI ENGINE CRASH] ${message}`);
         return {
             success: false,
             error: `AI generation failed: ${message}`,

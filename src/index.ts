@@ -43,24 +43,33 @@ export default function presolution(app: Probot): void {
     app.on("issue_comment.created", async (context) => {
         const { comment, issue } = context.payload;
 
+        context.log.info(`[BOT HEARD][issue_comment]: ${comment.body}`);
+
         // 1. Quick filter: skip if not a PR comment
         if (!issue.pull_request) {
+            context.log.info("[BOT IGNORE][issue_comment]: not a PR comment");
             return;
         }
 
         // 2. Quick filter: skip bot comments to prevent loops
         if (comment.user?.type === "Bot") {
+            context.log.info("[BOT IGNORE][issue_comment]: author is a bot");
             return;
         }
 
         // 3. Quick filter: skip if comment doesn't look like a command
-        if (!mightBeCommand(comment.body)) {
+        const maybeCommand = mightBeCommand(comment.body);
+        context.log.info(`[MIGHT BE COMMAND?][issue_comment]: ${maybeCommand}`);
+        if (!maybeCommand) {
+            context.log.info("[BOT IGNORE][issue_comment]: no command signal detected");
             return;
         }
 
         // 4. Parse the command
         const command = parseCommand(comment.body, false);
+        context.log.info(`[PARSED COMMAND][issue_comment]: ${command ? command.action : "none"}`);
         if (!command) {
+            context.log.info("[BOT IGNORE][issue_comment]: not a valid trigger command");
             return;
         }
 
@@ -87,14 +96,28 @@ export default function presolution(app: Probot): void {
     app.on("pull_request_review_comment.created", async (context) => {
         const { comment, pull_request } = context.payload;
 
+        context.log.info(`[BOT HEARD][review_comment]: ${comment.body}`);
+
         // Skip bot comments
-        if (comment.user?.type === "Bot") return;
+        if (comment.user?.type === "Bot") {
+            context.log.info("[BOT IGNORE][review_comment]: author is a bot");
+            return;
+        }
 
         // Check for command
-        if (!mightBeCommand(comment.body)) return;
+        const maybeCommand = mightBeCommand(comment.body);
+        context.log.info(`[MIGHT BE COMMAND?][review_comment]: ${maybeCommand}`);
+        if (!maybeCommand) {
+            context.log.info("[BOT IGNORE][review_comment]: no command signal detected");
+            return;
+        }
 
         const command = parseCommand(comment.body, true);
-        if (!command) return;
+        context.log.info(`[PARSED COMMAND][review_comment]: ${command ? command.action : "none"}`);
+        if (!command) {
+            context.log.info("[BOT IGNORE][review_comment]: not a valid trigger command");
+            return;
+        }
 
         const reviewCommentId = comment.in_reply_to_id ?? comment.id;
 

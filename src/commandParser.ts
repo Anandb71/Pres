@@ -6,10 +6,14 @@
 import type { ParsedCommand } from "./types.js";
 
 /**
- * Bot mention patterns — matches @PResolve or @presolution (case-insensitive)
+ * Bot mention pattern — accepts any @mention followed by a supported command.
+ * Examples:
+ *   @PResolve /fix
+ *   @presolution-ai /resolve
+ *   @any-bot-name /explain
  */
 const BOT_MENTION_PATTERN =
-    /(?:@presol(?:ve|ution))\s+\/(fix|resolve|explain)/i;
+    /@[\w-]+\s+\/(fix|resolve|explain)\b/i;
 
 /**
  * Standalone command pattern — matches /fix, /resolve, /explain directly
@@ -98,7 +102,6 @@ export function mightBeCommand(commentBody: string): boolean {
         lower.includes("/fix") ||
         lower.includes("/resolve") ||
         lower.includes("/explain") ||
-        lower.includes("@presolve") ||
-        lower.includes("@presolution")
+        /@[\w-]+/.test(lower)
     );
 }
