@@ -86,16 +86,19 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
                     throw secondError;
                 }
 
-                if (!prContext.commentLine) {
+                const targetLine = prContext.commentLine ?? inferLineFromDiffHunk(prContext.diffHunk);
+                if (!targetLine) {
                     throw secondError;
                 }
 
-                console.warn("[AI ENGINE] Compact prompt still too large; retrying with targeted line-fix prompt");
-                const linePrompt = buildLineFixPrompt(prContext);
+                console.warn(
+                    `[AI ENGINE] Compact prompt still too large; retrying with targeted line-fix prompt (line=${targetLine})`
+                );
+                const linePrompt = buildLineFixPrompt(prContext, targetLine);
                 const lineGenerated = await generateWithProvider(linePrompt);
                 const fixedContent = applyTargetLineFix(
                     prContext.fileContent,
-                    prContext.commentLine,
+                    targetLine,
                     lineGenerated.text
                 );
 
@@ -292,11 +295,11 @@ function buildPrompt(
     return prompt;
 }
 
-function buildLineFixPrompt(ctx: PRContext): string {
-    const window = extractLineWindow(ctx.fileContent, ctx.commentLine ?? 1, 25);
+function buildLineFixPrompt(ctx: PRContext, targetLine: number): string {
+    const window = extractLineWindow(ctx.fileContent, targetLine, 25);
     return [
         `## File: ${ctx.filePath}`,
-        `## Target line number: ${ctx.commentLine}`,
+        `## Target line number: ${targetLine}`,
         "## Reviewer feedback",
         ctx.reviewComment,
         "",
@@ -347,6 +350,14 @@ function applyTargetLineFix(fileContent: string, lineNumber: number, modelOutput
 
 function estimateTokens(text: string): number {
     return Math.ceil(text.length / 4);
+}
+
+function inferLineFromDiffHunk(diffHunk?: string): number | undefined {
+    if (!diffHunk) return undefined;
+    const match = diffHunk.match(/@@\s*-\d+(?:,\d+)?\s*\+(\d+)(?:,\d+)?\s*@@/);
+    if (!match) return undefined;
+    const line = Number(match[1]);
+    return Number.isFinite(line) && line > 0 ? line : undefined;
 }
 
 function isRequestTooLargeError(message: string): boolean {

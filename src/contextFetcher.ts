@@ -43,9 +43,19 @@ export async function fetchPRContext(
     // 2. Get the comment that triggered the bot + find the review context
     const triggerComment = context.payload.comment;
     let reviewComment = triggerComment.body;
-    let filePath = "";
-    let diffHunk = "";
-    let commentLine: number | undefined;
+    let filePath = ("path" in triggerComment && typeof triggerComment.path === "string")
+        ? triggerComment.path
+        : "";
+    let diffHunk = ("diff_hunk" in triggerComment && typeof triggerComment.diff_hunk === "string")
+        ? triggerComment.diff_hunk
+        : "";
+    let commentLine: number | undefined =
+        ("line" in triggerComment && typeof triggerComment.line === "number" && triggerComment.line > 0
+            ? triggerComment.line
+            : undefined) ||
+        ("original_line" in triggerComment && typeof triggerComment.original_line === "number" && triggerComment.original_line > 0
+            ? triggerComment.original_line
+            : undefined);
     let reviewer = triggerComment.user?.login || "unknown";
 
     // 3. If this is a reply to a review comment, get the parent review comment
@@ -59,9 +69,9 @@ export async function fetchPRContext(
                     comment_id: commentId,
                 });
             reviewComment = parentComment.body;
-            filePath = parentComment.path;
-            diffHunk = parentComment.diff_hunk || "";
-            commentLine = parentComment.line || parentComment.original_line || undefined;
+            filePath = parentComment.path || filePath;
+            diffHunk = parentComment.diff_hunk || diffHunk;
+            commentLine = parentComment.line || parentComment.original_line || commentLine || undefined;
             reviewer = parentComment.user?.login || reviewer;
         } catch {
             // If we can't get the review comment, fall through to diff-based detection
