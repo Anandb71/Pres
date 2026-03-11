@@ -313,7 +313,22 @@ const PORT = Number(process.env.PORT ?? 3000);
     if (process.env.APP_ID && (process.env.PRIVATE_KEY || process.env.PRIVATE_KEY_PATH)) {
         try {
             const probot = createProbot();
-            const webhookMiddleware = await createNodeMiddleware(presolution, { probot });
+
+            // Diagnostic logging for every webhook request that reaches this server.
+            server.use("/api/github/webhooks", (req, _res, next) => {
+                const deliveryId = req.header("x-github-delivery") || "unknown";
+                const eventName = req.header("x-github-event") || "unknown";
+                const hasSignature = !!req.header("x-hub-signature-256");
+                console.log(
+                    `[WEBHOOK IN] method=${req.method} path=${req.path} delivery=${deliveryId} event=${eventName} signature=${hasSignature}`
+                );
+                next();
+            });
+
+            const webhookMiddleware = await createNodeMiddleware(presolution, {
+                probot,
+                webhooksPath: "/api/github/webhooks",
+            });
             server.use(webhookMiddleware);
             probot.log.info("✅ Probot webhook handler active");
         } catch (err) {
