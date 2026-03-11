@@ -5,6 +5,7 @@
 
 import { Probot, createNodeMiddleware, createProbot, type Context } from "probot";
 import express from "express";
+import crypto from "node:crypto";
 import { createDashboardApp } from "./dashboard/server.js";
 import { parseCommand, mightBeCommand } from "./commandParser.js";
 import { fetchPRContext } from "./contextFetcher.js";
@@ -25,6 +26,19 @@ import {
 type BotContext =
     | Context<"issue_comment.created">
     | Context<"pull_request_review_comment.created">;
+
+function normalizeWebhookSecret(raw?: string): string | undefined {
+    if (!raw) return undefined;
+    const trimmed = raw.trim();
+    // Remove accidental wrapping quotes from env dashboards/copy-paste
+    const unquoted = trimmed.replace(/^['\"](.*)['\"]$/s, "$1").trim();
+    return unquoted;
+}
+
+function fingerprintSecret(secret?: string): string {
+    if (!secret) return "none";
+    return crypto.createHash("sha256").update(secret).digest("hex").slice(0, 12);
+}
 
 /**
  * PResolution — Autonomous PR Resolution Agent
@@ -316,6 +330,15 @@ const PORT = Number(process.env.PORT ?? 3000);
 
 (async () => {
     const server = express();
+
+    const normalizedWebhookSecret = normalizeWebhookSecret(process.env.WEBHOOK_SECRET);
+    if (normalizedWebhookSecret !== process.env.WEBHOOK_SECRET) {
+        process.env.WEBHOOK_SECRET = normalizedWebhookSecret;
+        console.log("ℹ️ Normalized WEBHOOK_SECRET (trimmed whitespace/quotes)");
+    }
+    console.log(
+        `ℹ️ WEBHOOK_SECRET configured len=${normalizedWebhookSecret?.length ?? 0} fp=${fingerprintSecret(normalizedWebhookSecret)}`
+    );
 
     // Mount Probot webhook handler only when GitHub App credentials are present.
     // This lets the dashboard run on Render before the GitHub App is created.
