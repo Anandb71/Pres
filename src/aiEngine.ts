@@ -78,7 +78,35 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
                 includeDiff: false,
                 compact: true,
             });
-            generated = await generateWithProvider(compactPrompt);
+            try {
+                generated = await generateWithProvider(compactPrompt);
+            } catch (secondError) {
+                const secondMessage = secondError instanceof Error ? secondError.message : String(secondError);
+                if (!isRequestTooLargeError(secondMessage)) {
+                    throw secondError;
+                }
+
+                if (!prContext.commentLine) {
+                    throw secondError;
+                }
+
+                console.warn("[AI ENGINE] Compact prompt still too large; retrying with targeted line-fix prompt");
+                const linePrompt = buildLineFixPrompt(prContext);
+                const lineGenerated = await generateWithProvider(linePrompt);
+                const fixedContent = applyTargetLineFix(
+                    prContext.fileContent,
+                    prContext.commentLine,
+                    lineGenerated.text
+                );
+
+                return {
+                    success: true,
+                    fixedContent,
+                    explanation: "Applied targeted line fix from reviewer feedback.",
+                    model: AI_MODEL,
+                    tokensUsed: lineGenerated.tokensUsed,
+                };
+            }
         }
 
         const text = generated.text;
@@ -262,6 +290,59 @@ function buildPrompt(
         : "## Task\nApply the reviewer's feedback and return the COMPLETE corrected file content. Return ONLY the code, no explanations or markdown fences.";
 
     return prompt;
+}
+
+function buildLineFixPrompt(ctx: PRContext): string {
+    const window = extractLineWindow(ctx.fileContent, ctx.commentLine ?? 1, 25);
+    return [
+        `## File: ${ctx.filePath}`,
+        `## Target line number: ${ctx.commentLine}`,
+        "## Reviewer feedback",
+        ctx.reviewComment,
+        "",
+        "## Nearby code (line-numbered)",
+        "```",
+        window,
+        "```",
+        "",
+        "## Task",
+        "Return ONLY the corrected code for the target line number.",
+        "Do not include line numbers, markdown, backticks, or explanation.",
+        "Preserve indentation exactly.",
+    ].join("\n");
+}
+
+function extractLineWindow(fileContent: string, lineNumber: number, radius: number): string {
+    const lines = fileContent.split("\n");
+    const center = Math.max(1, Math.min(lineNumber, lines.length));
+    const start = Math.max(1, center - radius);
+    const end = Math.min(lines.length, center + radius);
+
+    const numbered: string[] = [];
+    for (let i = start; i <= end; i += 1) {
+        numbered.push(`${i}: ${lines[i - 1]}`);
+    }
+    return numbered.join("\n");
+}
+
+function applyTargetLineFix(fileContent: string, lineNumber: number, modelOutput: string): string {
+    const lines = fileContent.split("\n");
+    const idx = lineNumber - 1;
+    if (idx < 0 || idx >= lines.length) {
+        throw new Error(`Target line ${lineNumber} is out of range for file`);
+    }
+
+    const cleaned = stripCodeFences(modelOutput)
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .find((line) => line.trim().length > 0);
+
+    if (!cleaned) {
+        throw new Error("Targeted line-fix response was empty");
+    }
+
+    lines[idx] = cleaned;
+    return lines.join("\n");
 }
 
 function estimateTokens(text: string): number {
