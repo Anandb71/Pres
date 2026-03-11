@@ -11,6 +11,7 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <div class="page-progress" aria-hidden="true"><div class="page-progress-bar" id="page-progress"></div></div>
   <div class="bg-noise" aria-hidden="true"></div>
   <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
@@ -34,7 +35,7 @@
     </div>
   </header>
 
-  <main class="section">
+  <main id="main-content" class="section">
     <div class="container page-shell">
       <section class="panel reveal is-visible">
         <p class="kicker">Operational health</p>
@@ -51,11 +52,15 @@
       <section class="panel reveal is-visible">
         <div class="panel-head">
           <h2>System endpoints</h2>
+          <button class="text-btn" id="run-health-check" type="button">Run live health check</button>
         </div>
         <div class="code-card">
           <code>GET /health → JSON health probe</code>
           <code>GET /api/activity → Recent activity + stats JSON</code>
           <code>GET /dashboard → Human dashboard view</code>
+        </div>
+        <div class="health-output small-note" id="health-output">
+          <span class="health-inline"><span class="health-dot" id="health-dot"></span><span id="health-text">Probe not run in this session.</span></span>
         </div>
       </section>
     </div>
@@ -86,11 +91,35 @@
   <script>
     (() => {
       const bar = document.getElementById('page-progress');
+      const runCheck = document.getElementById('run-health-check');
+      const dot = document.getElementById('health-dot');
+      const text = document.getElementById('health-text');
+
       const update = () => {
         const max = document.documentElement.scrollHeight - window.innerHeight;
         const p = max > 0 ? window.scrollY / max : 0;
         if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, p))})`;
       };
+
+      runCheck?.addEventListener('click', async () => {
+        if (text) text.textContent = 'Checking /health...';
+        dot?.classList.remove('ok', 'fail');
+        try {
+          const res = await fetch('/health', { headers: { Accept: 'application/json' } });
+          const json = await res.json();
+          if (res.ok && json?.status === 'ok') {
+            dot?.classList.add('ok');
+            if (text) text.textContent = `Healthy · ${json.timestamp}`;
+          } else {
+            dot?.classList.add('fail');
+            if (text) text.textContent = `Unexpected response (${res.status})`;
+          }
+        } catch (error) {
+          dot?.classList.add('fail');
+          if (text) text.textContent = `Health check failed: ${error instanceof Error ? error.message : String(error)}`;
+        }
+      });
+
       window.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
       update();
     })();

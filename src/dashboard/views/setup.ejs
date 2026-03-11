@@ -11,6 +11,7 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <div class="page-progress" aria-hidden="true"><div class="page-progress-bar" id="page-progress"></div></div>
   <div class="bg-noise" aria-hidden="true"></div>
   <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
@@ -34,7 +35,7 @@
     </div>
   </header>
 
-  <main class="section">
+  <main id="main-content" class="section">
     <div class="container page-shell">
       <section class="panel reveal is-visible">
         <p class="kicker">Deployment guide</p>
@@ -57,7 +58,11 @@
 
           <li>
             <h3>Clone the project</h3>
-            <div class="code-card">
+            <div class="code-card" data-copy-block>
+              <div class="code-card-head">
+                <span class="code-card-title">Terminal</span>
+                <button class="text-btn" type="button" data-copy-btn>Copy</button>
+              </div>
               <code>git clone https://github.com/Anandb71/Pres.git</code>
               <code>cd Pres</code>
               <code>npm install</code>
@@ -67,7 +72,11 @@
 
           <li>
             <h3>Configure environment</h3>
-            <div class="code-card">
+            <div class="code-card" data-copy-block>
+              <div class="code-card-head">
+                <span class="code-card-title">.env</span>
+                <button class="text-btn" type="button" data-copy-btn>Copy</button>
+              </div>
               <code>APP_ID=your_app_id</code>
               <code>PRIVATE_KEY_PATH=./private-key.pem</code>
               <code>WEBHOOK_SECRET=your_webhook_secret</code>
@@ -77,7 +86,11 @@
 
           <li>
             <h3>Run locally</h3>
-            <div class="code-card">
+            <div class="code-card" data-copy-block>
+              <div class="code-card-head">
+                <span class="code-card-title">Run commands</span>
+                <button class="text-btn" type="button" data-copy-btn>Copy</button>
+              </div>
               <code>npm run dev</code>
               <code>npm run build</code>
               <code>npm start</code>
@@ -118,11 +131,33 @@
   <script>
     (() => {
       const bar = document.getElementById('page-progress');
+      const copyBlocks = document.querySelectorAll('[data-copy-block]');
       const update = () => {
         const max = document.documentElement.scrollHeight - window.innerHeight;
         const p = max > 0 ? window.scrollY / max : 0;
         if (bar) bar.style.transform = `scaleX(${Math.max(0, Math.min(1, p))})`;
       };
+
+      copyBlocks.forEach((block) => {
+        const btn = block.querySelector('[data-copy-btn]');
+        const lines = Array.from(block.querySelectorAll('code')).map((el) => el.textContent || '').join('\n');
+        btn?.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(lines);
+            const original = btn.textContent;
+            btn.textContent = 'Copied';
+            setTimeout(() => {
+              btn.textContent = original || 'Copy';
+            }, 1200);
+          } catch {
+            btn.textContent = 'Copy failed';
+            setTimeout(() => {
+              btn.textContent = 'Copy';
+            }, 1200);
+          }
+        });
+      });
+
       window.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
       update();
     })();
