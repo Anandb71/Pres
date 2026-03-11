@@ -314,6 +314,18 @@ const PORT = Number(process.env.PORT ?? 3000);
         try {
             const probot = createProbot();
 
+            // Validate GitHub App credentials early so APP_ID / PRIVATE_KEY mismatches
+            // are visible immediately in Render logs.
+            try {
+                await probot.auth();
+                probot.log.info("✅ GitHub App auth check passed");
+            } catch (authErr) {
+                console.error(
+                    "❌ GitHub App auth check failed (APP_ID/PRIVATE_KEY likely mismatch):",
+                    authErr
+                );
+            }
+
             // Diagnostic logging for every webhook request that reaches this server.
             server.use("/api/github/webhooks", (req, _res, next) => {
                 const deliveryId = req.header("x-github-delivery") || "unknown";
