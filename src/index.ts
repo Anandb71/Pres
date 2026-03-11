@@ -35,6 +35,10 @@ type BotContext =
  */
 export default function presolution(app: Probot): void {
     app.log.info("🚀 PResolution bot loaded and ready!");
+    app.onError((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        app.log.error(`❌ Unhandled Probot error: ${message}`);
+    });
 
     // ──────────────────────────────────────────────
     // Primary handler: issue_comment.created
@@ -160,6 +164,11 @@ async function handleFixCommand(
     const activityId = generateId();
     const owner = context.payload.repository.owner.login;
     const repo = context.payload.repository.name;
+    let processingCommentId: number | undefined;
+
+    context.log.info(
+        `🧵 Starting fix pipeline repo=${owner}/${repo} pr=#${pullNumber} triggerCommentId=${context.payload.comment.id} reviewCommentId=${reviewCommentId ?? "n/a"}`
+    );
 
     // Log the activity
     logActivity({
@@ -177,7 +186,7 @@ async function handleFixCommand(
         await addReaction(context, "eyes");
 
         // Post processing comment
-        const processingCommentId = await postProcessingComment(context, pullNumber);
+        processingCommentId = await postProcessingComment(context, pullNumber);
 
         // Step 1: Fetch PR context
         context.log.info("📖 Fetching PR context...");
@@ -249,7 +258,7 @@ async function handleFixCommand(
 
         context.log.error(`❌ Fix failed: ${message}`);
 
-        await postFailureComment(context, pullNumber, undefined, message, processingTime);
+        await postFailureComment(context, pullNumber, processingCommentId, message, processingTime);
         await addReaction(context, "confused");
 
         updateActivity(activityId, {

@@ -11,6 +11,11 @@ type BotContext =
     | Context<"issue_comment.created">
     | Context<"pull_request_review_comment.created">;
 
+function errorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
+}
+
 /**
  * Add a reaction to the trigger comment (quick visual feedback).
  */
@@ -38,8 +43,9 @@ export async function addReaction(
                 content: reaction,
             });
         }
-    } catch {
+    } catch (error) {
         // Reactions are nice-to-have, don't fail on them
+        context.log.warn(`⚠️ Failed to add reaction (${reaction}): ${errorMessage(error)}`);
     }
 }
 
@@ -77,7 +83,8 @@ export async function postProcessingComment(
             ].join("\n"),
         });
         return comment.id;
-    } catch {
+    } catch (error) {
+        context.log.warn(`⚠️ Failed to post processing comment on PR #${pullNumber}: ${errorMessage(error)}`);
         return undefined;
     }
 }
@@ -166,7 +173,10 @@ async function updateOrCreateComment(
                 body,
             });
         }
-    } catch {
+    } catch (updateError) {
+        context.log.warn(
+            `⚠️ Failed to update/create comment (commentId=${commentId ?? "new"}) on PR #${pullNumber}: ${errorMessage(updateError)}`
+        );
         // Last resort: try to create a new comment
         try {
             await context.octokit.rest.issues.createComment({
@@ -175,8 +185,11 @@ async function updateOrCreateComment(
                 issue_number: pullNumber,
                 body,
             });
-        } catch {
+        } catch (createError) {
             // If we can't even create a comment, there's nothing we can do
+            context.log.error(
+                `❌ Failed to post fallback comment on PR #${pullNumber}: ${errorMessage(createError)}`
+            );
         }
     }
 }
