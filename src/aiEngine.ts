@@ -12,6 +12,9 @@ import { stripCodeFences } from "./utils.js";
  */
 const AI_PROVIDER = (process.env.AI_PROVIDER || "gemini").toLowerCase();
 const AI_MODEL = process.env.AI_MODEL || (AI_PROVIDER === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini");
+const MAX_REQUEST_TOKENS = Number(process.env.MAX_REQUEST_TOKENS ?? 7800);
+const RESERVE_OUTPUT_TOKENS = Number(process.env.RESERVE_OUTPUT_TOKENS ?? 1600);
+const MIN_OUTPUT_TOKENS = Number(process.env.MIN_OUTPUT_TOKENS ?? 512);
 
 /**
  * System prompt that instructs the AI how to behave.
@@ -50,9 +53,34 @@ export async function generateFix(prContext: PRContext): Promise<AIResponse> {
     }
 
     try {
-        const userPrompt = buildPrompt(prContext);
-        console.info(`[AI ENGINE] Sending prompt to provider=${AI_PROVIDER} model=${AI_MODEL} file=${prContext.filePath}`);
-        const generated = await generateWithProvider(userPrompt);
+        const fullPrompt = buildPrompt(prContext, {
+            includeDescription: true,
+            includeDiff: true,
+            compact: false,
+        });
+
+        console.info(
+            `[AI ENGINE] Sending prompt to provider=${AI_PROVIDER} model=${AI_MODEL} file=${prContext.filePath}`
+        );
+
+        let generated: { text: string; tokensUsed?: number };
+        try {
+            generated = await generateWithProvider(fullPrompt);
+        } catch (firstError) {
+            const firstMessage = firstError instanceof Error ? firstError.message : String(firstError);
+            if (!isRequestTooLargeError(firstMessage)) {
+                throw firstError;
+            }
+
+            console.warn("[AI ENGINE] Request too large; retrying with compact prompt");
+            const compactPrompt = buildPrompt(prContext, {
+                includeDescription: false,
+                includeDiff: false,
+                compact: true,
+            });
+            generated = await generateWithProvider(compactPrompt);
+        }
+
         const text = generated.text;
 
         if (!text || text.trim().length === 0) {
@@ -160,6 +188,12 @@ async function generateWithOpenAICompatible(
     const timeout = setTimeout(() => controller.abort(), 45_000);
 
     try {
+        const promptTokensEstimate = estimateTokens(userPrompt);
+        const maxOutputTokens = Math.max(
+            MIN_OUTPUT_TOKENS,
+            Math.min(RESERVE_OUTPUT_TOKENS, MAX_REQUEST_TOKENS - promptTokensEstimate)
+        );
+
         const response = await fetch(endpoint, {
             method: "POST",
             headers: {
@@ -169,6 +203,7 @@ async function generateWithOpenAICompatible(
             body: JSON.stringify({
                 model: AI_MODEL,
                 temperature: 0.1,
+                max_tokens: maxOutputTokens,
                 messages: [
                     { role: "system", content: SYSTEM_PROMPT },
                     { role: "user", content: userPrompt },
@@ -200,17 +235,20 @@ async function generateWithOpenAICompatible(
 /**
  * Build the user prompt with all the context the AI needs.
  */
-function buildPrompt(ctx: PRContext): string {
+function buildPrompt(
+    ctx: PRContext,
+    options: { includeDescription: boolean; includeDiff: boolean; compact: boolean }
+): string {
     let prompt = `## PR: ${ctx.title}\n`;
 
-    if (ctx.description) {
+    if (options.includeDescription && ctx.description) {
         prompt += `### Description\n${ctx.description}\n\n`;
     }
 
     prompt += `## File: \`${ctx.filePath}\`\n\n`;
     prompt += `### Current File Content\n\`\`\`\n${ctx.fileContent}\n\`\`\`\n\n`;
 
-    if (ctx.diffHunk) {
+    if (options.includeDiff && ctx.diffHunk) {
         prompt += `### Relevant Diff\n\`\`\`diff\n${ctx.diffHunk}\n\`\`\`\n\n`;
     }
 
@@ -219,9 +257,25 @@ function buildPrompt(ctx: PRContext): string {
     }
 
     prompt += `### Reviewer's Feedback (@${ctx.reviewer})\n${ctx.reviewComment}\n\n`;
-    prompt += `## Task\nApply the reviewer's feedback and return the COMPLETE corrected file content. Return ONLY the code, no explanations or markdown fences.`;
+    prompt += options.compact
+        ? "## Task\nApply only the requested fix and return ONLY the complete corrected file content. No markdown or explanations."
+        : "## Task\nApply the reviewer's feedback and return the COMPLETE corrected file content. Return ONLY the code, no explanations or markdown fences.";
 
     return prompt;
+}
+
+function estimateTokens(text: string): number {
+    return Math.ceil(text.length / 4);
+}
+
+function isRequestTooLargeError(message: string): boolean {
+    const m = message.toLowerCase();
+    return (
+        m.includes("request too large") ||
+        m.includes("413") ||
+        m.includes("tokens per minute") ||
+        m.includes("rate_limit_exceeded")
+    );
 }
 
 /**
