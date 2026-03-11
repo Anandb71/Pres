@@ -16,7 +16,11 @@ const __dirname = path.dirname(__filename);
  */
 export function createDashboardApp(): express.Application {
     const app = express();
-    const dashboardAccessToken = process.env.DASHBOARD_ACCESS_TOKEN?.trim();
+    const rawDashboardAccessToken = process.env.DASHBOARD_ACCESS_TOKEN?.trim();
+    const dashboardAccessToken =
+        rawDashboardAccessToken && !rawDashboardAccessToken.startsWith("PASTE_")
+            ? rawDashboardAccessToken
+            : undefined;
     const isProduction = process.env.NODE_ENV === "production";
     const rateLimitWindowMs = Number(process.env.DASHBOARD_RATE_WINDOW_MS ?? 60_000);
     const rateLimitMaxRequests = Number(process.env.DASHBOARD_RATE_MAX_REQUESTS ?? 240);
@@ -82,7 +86,7 @@ export function createDashboardApp(): express.Application {
 
     // Route protection for non-public operational endpoints
     app.use((req, res, next) => {
-        const protectedRoutes = ["/dashboard", "/status", "/api/activity"];
+        const protectedRoutes = ["/api/activity"];
         const shouldProtect = protectedRoutes.some((route) => req.path.startsWith(route));
         if (!shouldProtect) return next();
 

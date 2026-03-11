@@ -3,12 +3,53 @@
 // ============================================================
 
 import type { ActivityEntry } from "./types.js";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * In-memory activity log (in production, this would be a database)
  */
 const activityLog: ActivityEntry[] = [];
 const MAX_LOG_SIZE = 500;
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+const ACTIVITY_LOG_PATH = path.join(DATA_DIR, "activity-log.json");
+
+function loadActivityLog(): void {
+    try {
+        if (!fs.existsSync(ACTIVITY_LOG_PATH)) {
+            return;
+        }
+
+        const raw = fs.readFileSync(ACTIVITY_LOG_PATH, "utf-8");
+        const parsed = JSON.parse(raw) as Array<Omit<ActivityEntry, "timestamp"> & { timestamp: string }>;
+        const hydrated = parsed
+            .map((entry) => ({
+                ...entry,
+                timestamp: new Date(entry.timestamp),
+            }))
+            .filter((entry) => !Number.isNaN(entry.timestamp.getTime()))
+            .slice(0, MAX_LOG_SIZE);
+
+        activityLog.splice(0, activityLog.length, ...hydrated);
+    } catch (error) {
+        console.warn(
+            `[UTILS] Failed to load activity log from disk: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+}
+
+function persistActivityLog(): void {
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.writeFileSync(ACTIVITY_LOG_PATH, JSON.stringify(activityLog, null, 2), "utf-8");
+    } catch (error) {
+        console.warn(
+            `[UTILS] Failed to persist activity log: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+}
+
+loadActivityLog();
 
 /**
  * Add an activity entry to the log.
@@ -18,6 +59,7 @@ export function logActivity(entry: ActivityEntry): void {
     if (activityLog.length > MAX_LOG_SIZE) {
         activityLog.pop();
     }
+    persistActivityLog();
 }
 
 /**
@@ -30,6 +72,7 @@ export function updateActivity(
     const entry = activityLog.find((e) => e.id === id);
     if (entry) {
         Object.assign(entry, updates);
+        persistActivityLog();
     }
 }
 
