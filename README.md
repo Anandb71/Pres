@@ -275,7 +275,7 @@ Push a commit → Render auto-deploys. Your webhook URL is live and the bot is r
 
 ## 📄 License
 
-MIT © [Anand](https://github.com/anand)
+MIT © [Anand](https://github.com/anandb71)
 
 ---
 
